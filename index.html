@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="author" content="FlashOfChange@2020 and the elders of the Internet">
+    <title>Eight Starts - Poland 2020</title>
+    <script src="//code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+    <script src="//cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" crossorigin="anonymous"></script>
+  </head>
+
+  <body>
+    <div class='container' id="animation">
+        <div class="center" id="stars" style="display: none;text-align: center;">**</div>
+    </div>​
+
+    <div class='container' id="instruction" >
+        <div class="center" id="stars" style="text-align: center;line-height: normal;font-size: 20px;">
+        <div id="qrcode" align="center"></div><br>
+        <br>
+        Click to flash!<br><br>
+        Eight stars - Poland 2020<br>Share,Fork,Use.<br><a href="https://github.com/flashofchange/eightstars">Enter github repo.</a>
+        <br>
+        <div id='time-sync'></div>
+        </div>
+    </div>​
+
+    <script type="module" crossorigin="anonymous">
+        
+        $(document).ready(function() {
+
+            var qrcode = new QRCode(document.getElementById("qrcode"), {
+                text: ''+ document.location,
+                width: 300,
+                height: 300,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+
+            var instruction_on = true;
+
+            $(document).click(function(event) {
+                if (event.target.tagName == 'A'){
+                   event.stopPropagation();
+                   return;
+                }
+
+                if (instruction_on){
+                    console.log( "Handler for .mouseup() called." );
+                    $("body").css("background-color", "white");
+                    $("#animation").show();
+                    $("#instruction").hide();
+                    instruction_on = false;
+                } else {
+                    console.log( "Handler for .mousedown() called." );
+                    $("body").css("background-color", "white");
+                    $("#animation").hide();
+                    $("#instruction").show();
+                    instruction_on = true;
+                }
+            });        
+
+
+            function animation_frame_black(){
+                if (instruction_on) return;
+                $("body").css("background-color", "black");
+                $("#stars").css("color", "black");
+                $("#stars").hide();
+            }
+
+            function animation_frame_1(){
+                if (instruction_on) return;
+                $("body").css("background-color", "white");
+                $("#stars").show();
+                $("#stars").html("**");
+            }
+
+            function animation_frame_2(){
+                if (instruction_on) return;
+                $("body").css("background-color", "white");
+                $("#stars").show();
+                $("#stars").html("*****");
+
+            }
+
+            function animation_frame_3(){
+                if (instruction_on) return;
+                $("body").css("background-color", "red");
+                $("#stars").show();
+                $("#stars").html("***** <div style='color: white;'>***</div>");
+            }
+
+            var last_anim_sub_time_ms = 0;
+            var anim_frame = 0;
+            var last_base_time = 0;
+
+            var animation = [
+                [700, -1, animation_frame_1],
+                [100, -1, animation_frame_black],
+                [700, -1, animation_frame_2],
+                [100, -1, animation_frame_black],
+                [700, -1, animation_frame_3],
+                [100, -1, animation_frame_black],
+                [0, -1, function(){anim_frame = 0; animation_frame_1();}]
+            ];
+
+            var time_diffs = [];
+            
+            //console.log(animation);
+
+            var animation_length_ms = 0;
+
+            for (var i = 0; i < animation.length; i++) {
+                animation[i][1] = animation_length_ms;
+                animation_length_ms += animation[i][0];
+            }
+
+            var sync_period = 1000 * 60 * 5; 
+            //var sync_period = 0;
+            var last_sync_key = 'last_sync_date';
+            var time_diff_key = 'time_diff';
+            var sync_max_tries = 10;
+            var sync_try = 0;
+
+            if (window.localStorage.getItem(last_sync_key) == null) {
+                window.localStorage.setItem(last_sync_key, '' + (new Date(0)));
+            }
+
+            var last_sync_date = new Date(window.localStorage.getItem(last_sync_key));
+
+            //console.log(last_sync_date);
+
+            Animation();
+
+            if ( Math.abs((new Date()) - last_sync_date) > sync_period) {
+                SyncTime();
+            } else {
+                console.log("ALREADY SYNCED");
+                var _dt = sync_period - Math.abs((new Date()) - last_sync_date);
+                $("#time-sync").html("time-sync: done! next in " + Math.floor(_dt/1000) + " sec");
+            }
+
+            function SyncTime() {
+                var req_start = new Date();
+                var xmlhttp = new XMLHttpRequest();
+                xmlhttp.open("HEAD", "https://www.googleapis.com/",true);
+                xmlhttp.setRequestHeader("poland-2020-eight-stars-request", "do-not-ban-our-fight-pls")
+                xmlhttp.setRequestHeader("poland-2020-eight-stars-purpouse", "time-sync")
+                xmlhttp.setRequestHeader("poland-2020-eight-stars", "thank-you")
+
+                xmlhttp.onreadystatechange=function() {
+            
+                    if (xmlhttp.readyState==4) {
+                        console.log(xmlhttp.getResponseHeader("Date"));
+                        var sync_diff = new Date(xmlhttp.getResponseHeader("Date")) - 
+                                        (new Date()) + ((new Date()) - req_start) / 2;
+
+                        time_diffs[sync_try] = sync_diff;
+
+                        var time_diff_avg = time_diffs.reduce((a,b) => a + b, 0) / time_diffs.length;
+                        
+                        console.log(time_diff_avg);
+                        window.localStorage.setItem(time_diff_key, time_diff_avg);
+
+                        $("#time-sync").html("time-sync in:"+(sync_max_tries -sync_try));
+
+                        sync_try++;
+
+                        if (sync_try > sync_max_tries){
+                            window.localStorage.setItem(last_sync_key, '' + (new Date()));
+                            $("#time-sync").html("time-sync: done!");
+                        } 
+                    }
+                }
+
+                xmlhttp.send(null);
+
+                if (sync_try < sync_max_tries) {
+                    window.setTimeout(SyncTime, 500 + Math.floor(Math.random() * Math.floor(1000)));
+                } 
+                console.log(time_diffs);
+            }
+            
+            function Animation(){
+                var diff = parseInt(window.localStorage.getItem(time_diff_key), 10);
+            
+                //var time_str = (new Date(Date.now() + diff)).toTimeString().split(' ')[0];
+                //console.log(time_str);
+                var new_date_ms = Date.now() + diff;
+                var current_sub_time_ms = new_date_ms % animation_length_ms;
+                var base_time = new_date_ms - current_sub_time_ms;
+                var time_to_sleep = 0;
+
+                var computed_frame = 0;
+                for (var i = 0 ; i < animation.length ; i++){
+                    if (animation[i][1] > current_sub_time_ms) break;
+                    computed_frame = i;
+                }
+
+                if (anim_frame != computed_frame) {
+                    anim_frame++;
+                    if (anim_frame > animation.length){ anim_frame = 0;}
+
+                    animation[anim_frame][2]();
+
+                    var time_to_sleep = (animation[anim_frame][1] - current_sub_time_ms) *0.75;
+
+                    //console.log(anim_frame);
+
+                    time_to_sleep = Math.max(1,time_to_sleep);
+
+                    window.setTimeout(Animation, time_to_sleep);
+                
+                } else {
+                    window.setTimeout(Animation, 50);
+                }
+
+                last_base_time = base_time;
+            }
+        });
+    </script>
+    </body>
+
+<style type="text/css">
+html,body
+{
+    height: 100%;
+}
+body {
+   display: table; 
+   margin: 0 auto;
+   background: rgb(255,255,255);
+   color: rgb(0,0,0);
+}
+.container
+{  
+    height: 100%;
+    display: table-cell;   
+    vertical-align: middle;    
+}
+.center
+{
+    font-size: 120px;
+}
+</style>
+</html>
